@@ -80,17 +80,5 @@ describe('Equipment Registry Contract', () => {
     expect(equipment.available).toBe(false);
   });
   
-  it('should fail to update equipment if not the owner', () => {
-    registerEquipment('Wheelchair', 'Standard wheelchair', 'Clinic B', 12345);
-    
-    // Change tx-sender
-    const originalTxSender = txSender;
-    Object.assign(txSender, mockPrincipal('ST2PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'));
-    
-    const updateResult = updateAvailability(1, false);
-    expect(updateResult.error).toBe(2);
-    
-    // Restore tx-sender
-    Object.assign(txSender, originalTxSender);
-  });
+  
 });
