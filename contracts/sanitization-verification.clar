@@ -1,30 +1,59 @@
+;; Sanitization Verification Contract
+;; Ensures proper cleaning between users
 
-;; title: sanitization-verification
-;; version:
-;; summary:
-;; description:
+(define-map sanitization-records
+  { equipment-id: uint, timestamp: uint }
+  {
+    verifier: principal,
+    method-used: (string-ascii 100),
+    notes: (string-ascii 500),
+    verified: bool
+  }
+)
 
-;; traits
-;;
+(define-map authorized-verifiers
+  { verifier: principal }
+  { authorized: bool }
+)
 
-;; token definitions
-;;
+(define-data-var admin principal tx-sender)
 
-;; constants
-;;
+(define-public (add-verifier (verifier principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err u1))
+    (ok (map-set authorized-verifiers
+                { verifier: verifier }
+                { authorized: true }))))
 
-;; data vars
-;;
+(define-public (remove-verifier (verifier principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err u1))
+    (ok (map-set authorized-verifiers
+                { verifier: verifier }
+                { authorized: false }))))
 
-;; data maps
-;;
+(define-public (verify-sanitization
+                (equipment-id uint)
+                (method-used (string-ascii 100))
+                (notes (string-ascii 500)))
+  (begin
+    (asserts! (default-to false (get authorized (map-get? authorized-verifiers { verifier: tx-sender }))) (err u2))
+    (ok (map-set sanitization-records
+                { equipment-id: equipment-id, timestamp: block-height }
+                {
+                  verifier: tx-sender,
+                  method-used: method-used,
+                  notes: notes,
+                  verified: true
+                }))))
 
-;; public functions
-;;
+(define-read-only (get-sanitization-record (equipment-id uint) (timestamp uint))
+  (map-get? sanitization-records { equipment-id: equipment-id, timestamp: timestamp }))
 
-;; read only functions
-;;
+(define-read-only (is-verifier (verifier principal))
+  (default-to false (get authorized (map-get? authorized-verifiers { verifier: verifier }))))
 
-;; private functions
-;;
-
+(define-public (transfer-admin (new-admin principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) (err u1))
+    (ok (var-set admin new-admin))))
